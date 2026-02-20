@@ -1,1 +1,4 @@
 bazel-*
+results/*.bc
+results/*.o
+build/
