@@ -12,14 +12,14 @@ load("@rules_pkg//:deps.bzl", "rules_pkg_dependencies")
 rules_pkg_dependencies()
 
 BAZEL_TOOLCHAIN_TAG = "0.7.1"
-BAZEL_TOOLCHAIN_SHA = "97853d0b2a725f9eb3f5c2cc922e86a69afb35a01b52a69b4f864eaf9f3c4f40"
+BAZEL_TOOLCHAIN_SHA = "5613b430a6b7f6d0eb03011976df53abe7f4cc6c3ec43be066b679c4ad81e3bf"
 
 http_archive(
     name = "com_grail_bazel_toolchain",
     sha256 = BAZEL_TOOLCHAIN_SHA,
-    strip_prefix = "bazel-toolchain-{tag}".format(tag = BAZEL_TOOLCHAIN_TAG),
+    strip_prefix = "toolchains_llvm-{tag}".format(tag = BAZEL_TOOLCHAIN_TAG),
     canonical_id = BAZEL_TOOLCHAIN_TAG,
-    url = "https://github.com/grailbio/bazel-toolchain/archive/{tag}.tar.gz".format(tag = BAZEL_TOOLCHAIN_TAG),
+    url = "https://github.com/bazel-contrib/toolchains_llvm/archive/{tag}.tar.gz".format(tag = BAZEL_TOOLCHAIN_TAG),
 )
 
 load("@com_grail_bazel_toolchain//toolchain:deps.bzl", "bazel_toolchain_dependencies")
@@ -30,7 +30,7 @@ load("@com_grail_bazel_toolchain//toolchain:rules.bzl", "llvm_toolchain")
 
 llvm_toolchain(
     name = "llvm_base_toolchain",
-    llvm_version = "13.0.0",
+    llvm_version = "14.0.0",
 )
 
 http_archive(
