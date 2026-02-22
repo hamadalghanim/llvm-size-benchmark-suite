@@ -1,0 +1,1 @@
+docker run -d -v "${PWD}:/workspace" -w /workspace llvm-14 bash -c "./bench.sh 2>&1 | tee nohup.out"
