@@ -80,6 +80,18 @@ filegroup(
 exports_files(["sqlite3.c", "sqlite3.h"])
 """,
 )
+http_archive(
+    name = "redis_src",
+    url = "https://download.redis.io/redis-stable.tar.gz",
+    strip_prefix = "redis-stable",
+    build_file_content = """
+filegroup(
+    name = "all",
+    srcs = glob(["**"], exclude = ["**/*.o", "**/*.a"]),
+    visibility = ["//visibility:public"],
+)
+""",
+)
 
 http_archive(
     name = "mibench_automotive",

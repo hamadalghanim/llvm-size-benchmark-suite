@@ -75,11 +75,39 @@ run_benchmark() {
         fm_text="N/A"; fm_reduction="N/A"; fm_status="FAILED"
     fi
 
+
     printf "%s\tFM\t%s\t%s\t%s\t%s\t%s\n" \
         "$name" "$text_before" "$fm_text" "$fm_reduction" "$fm_time" "$fm_status" \
         | tee -a "$PASSES_LOG"
 
-    # ── Pass 2: IR2Vec ────────────────────────────────────────────────────────
+    # ── Pass 2: FM (func-merging + f3m) ──────────────────────────────────────
+    echo "  [FM-Linear] running on $name..." >&2
+    local fm_out="$OUTPUT_DIR/${name}_fm.bc"
+    local fm_result
+    fm_result=$(run_pass "$bc_file" "$fm_out" \
+        -load-pass-plugin="$PLUGIN" \
+        -load="$PLUGIN" \
+        -passes="default<Oz>,func-merging" \
+        --func-merging-whole-program \
+        --func-merging-f3m)
+    local fm_time fm_rc fm_text fm_reduction fm_status
+    fm_time=$(echo "$fm_result" | awk '{print $1}')
+    fm_rc=$(echo "$fm_result" | awk '{print $2}')
+    if [[ "$fm_rc" -eq 0 && -f "$fm_out" ]]; then
+        fm_text=$(obj_size "$fm_out")
+        fm_reduction=$(echo "scale=2; 100 * (1 - $fm_text / $text_before)" | bc)
+        fm_status="ok"
+    else
+        fm_text="N/A"; fm_reduction="N/A"; fm_status="FAILED"
+    fi
+
+
+    printf "%s\tFM-Linear\t%s\t%s\t%s\t%s\t%s\n" \
+        "$name" "$text_before" "$fm_text" "$fm_reduction" "$fm_time" "$fm_status" \
+        | tee -a "$PASSES_LOG"
+
+
+    # ── Pass 3: IR2Vec ────────────────────────────────────────────────────────
     echo "  [IR2Vec] running on $name..." >&2
     local ir2vec_out="$OUTPUT_DIR/${name}_ir2vec.bc"
     local ir2vec_result
