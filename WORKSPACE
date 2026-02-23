@@ -51,6 +51,21 @@ rust_register_toolchains(version = "1.59.0")
 # Benchmark source code
 
 http_archive(
+    name = "sqlite_src",
+    url = "https://sqlite.org/2026/sqlite-amalgamation-3510200.zip",
+    sha256 = "6e2a845a493026bdbad0618b2b5a0cf48584faab47384480ed9f592d912f23ec",
+    strip_prefix = "sqlite-amalgamation-3510200",
+    build_file_content = """
+filegroup(
+    name = "all",
+    srcs = glob(["**"]),
+    visibility = ["//visibility:public"],
+)
+exports_files(["sqlite3.c", "sqlite3.h"])
+""",
+)
+
+http_archive(
     name = "mibench_automotive",
     sha256 = "d63e8dc1f15d93d1b7ee59aed4dfb38659cb78819ce94bd26f8ceaf4d149fad9",
     strip_prefix = "automotive",

@@ -42,6 +42,11 @@ pkg_files(
     srcs = ["//benchmarks/rustc-perf:all"],
     prefix = "benchmarks/rustc-perf",
 )
+pkg_files(
+    name = "sqlite_bc",
+    srcs = ["//benchmarks/sqlite:all"],
+    prefix = "benchmarks/sqlite",
+)
 
 pkg_tar(
     name = "bitcode_tar",
@@ -55,3 +60,4 @@ pkg_tar(
         ":rustc_perf",
     ],
 )
+
