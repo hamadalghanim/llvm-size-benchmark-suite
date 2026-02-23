@@ -51,6 +51,22 @@ rust_register_toolchains(version = "1.59.0")
 # Benchmark source code
 
 http_archive(
+    name = "llvm_src",
+    build_file_content = """
+filegroup(
+    name = "all",
+    srcs = glob(["**"]),
+    visibility = ["//visibility:public"],
+)
+""",
+    # Updated to the checksum Bazel found
+    sha256 = "9a56d906a2c81f16f06efc493a646d497c53c2f4f28f0cb1f3c8da7f74350254",
+    strip_prefix = "llvm-project-16.0.0.src",
+    urls = [
+        "https://github.com/llvm/llvm-project/releases/download/llvmorg-16.0.0/llvm-project-16.0.0.src.tar.xz",
+    ],
+)
+http_archive(
     name = "sqlite_src",
     url = "https://sqlite.org/2026/sqlite-amalgamation-3510200.zip",
     sha256 = "6e2a845a493026bdbad0618b2b5a0cf48584faab47384480ed9f592d912f23ec",

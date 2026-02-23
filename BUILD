@@ -43,6 +43,12 @@ pkg_files(
     prefix = "benchmarks/rustc-perf",
 )
 pkg_files(
+    name = "llvm_bc_pkg",
+    srcs = [":llvm_bitcode"],
+    prefix = "benchmarks/llvm",
+    visibility = ["//visibility:public"],
+)
+pkg_files(
     name = "sqlite_bc",
     srcs = ["//benchmarks/sqlite:all"],
     prefix = "benchmarks/sqlite",
@@ -58,6 +64,8 @@ pkg_tar(
         ":mibench_automotive_susan",
         ":mibench_consumer_jpeg",
         ":rustc_perf",
+        ":llvm_bc_pkg",
+        ":sqlite_bc"
     ],
 )
 
