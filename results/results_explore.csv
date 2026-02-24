@@ -53,3 +53,9 @@ rustc-perf_ripgrep-13.0.0,IR2Vec,6247579,5117099,19.00,452.049,ok
 rustc-perf_unicode-normalization-0.1.19,FM,1718389,1675773,3.00,51.514,ok
 rustc-perf_unicode-normalization-0.1.19,FM-Linear,1718389,1642130,5.00,63.065,ok
 rustc-perf_unicode-normalization-0.1.19,IR2Vec,1718389,1597541,8.00,40.754,ok
+redis,FM,2180892,2176168,1.00,69.832,ok
+redis,FM-Linear,2180892,2176312,1.00,84.158,ok
+redis,IR2Vec,2180892,2172712,1.00,118.210,ok
+sqlite3,FM,1118477,1170568,-4.00,70.093,ok
+sqlite3,FM-Linear,1118477,1172646,-4.00,86.700,ok
+sqlite3,IR2Vec,1118477,1155380,-3.00,42.537,ok

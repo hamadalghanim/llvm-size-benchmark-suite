@@ -1,3 +1,7 @@
 benchmark	pass	text_before	text_after	reduction_pct	time_s	status
-bazel-bin_benchmarks_sqlite_sqlite3	FM	1118477	1159422	-3.00	41.680	ok
-bazel-bin_benchmarks_sqlite_sqlite3	IR2Vec	1118477	1150494	-2.00	31.573	ok
+build_new benches_redis_redis	FM	2180892	2176168	1.00	69.832	ok
+build_new benches_redis_redis	FM-Linear	2180892	2176312	1.00	84.158	ok
+build_new benches_redis_redis	IR2Vec	2180892	2172712	1.00	118.210	ok
+build_new benches_sqlite_sqlite3	FM	1118477	1170568	-4.00	70.093	ok
+build_new benches_sqlite_sqlite3	FM-Linear	1118477	1172646	-4.00	86.700	ok
+build_new benches_sqlite_sqlite3	IR2Vec	1118477	1155380	-3.00	42.537	ok

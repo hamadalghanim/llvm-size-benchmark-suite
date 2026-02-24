@@ -63,6 +63,7 @@ run_benchmark() {
         -load="$PLUGIN" \
         -passes="default<Oz>,func-merging" \
         --func-merging-whole-program \
+        --func-merging-explore 2 \
         --func-merging-f3m)
     local fm_time fm_rc fm_text fm_reduction fm_status
     fm_time=$(echo "$fm_result" | awk '{print $1}')
@@ -82,19 +83,19 @@ run_benchmark() {
 
     # ── Pass 2: FM (func-merging + f3m) ──────────────────────────────────────
     echo "  [FM-Linear] running on $name..." >&2
-    local fm_out="$OUTPUT_DIR/${name}_fm.bc"
+    local fml_out="$OUTPUT_DIR/${name}_fm_linear.bc"
     local fm_result
-    fm_result=$(run_pass "$bc_file" "$fm_out" \
+    fm_result=$(run_pass "$bc_file" "$fml_out" \
         -load-pass-plugin="$PLUGIN" \
         -load="$PLUGIN" \
         -passes="default<Oz>,func-merging" \
-        --func-merging-whole-program \
-        --func-merging-f3m)
+        --func-merging-explore 2 \
+        --func-merging-whole-program)
     local fm_time fm_rc fm_text fm_reduction fm_status
     fm_time=$(echo "$fm_result" | awk '{print $1}')
     fm_rc=$(echo "$fm_result" | awk '{print $2}')
-    if [[ "$fm_rc" -eq 0 && -f "$fm_out" ]]; then
-        fm_text=$(obj_size "$fm_out")
+    if [[ "$fm_rc" -eq 0 && -f "$fml_out" ]]; then
+        fm_text=$(obj_size "$fml_out")
         fm_reduction=$(echo "scale=2; 100 * (1 - $fm_text / $text_before)" | bc)
         fm_status="ok"
     else
@@ -116,6 +117,7 @@ run_benchmark() {
         -load="$PLUGIN" \
         -passes="default<Oz>,func-merging" \
         --func-merging-whole-program \
+        --func-merging-explore 2 \
         --func-merging-ir2vec \
         --ir2vec-vocab-path "$IR2VEC_VOCAB")
     local ir2vec_time ir2vec_rc ir2vec_text ir2vec_reduction ir2vec_status
