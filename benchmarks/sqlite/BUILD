@@ -4,7 +4,7 @@ genrule(
     outs = ["sqlite3.bc"],
     cmd = """
         external/llvm_base_toolchain_llvm/bin/clang \
-            -emit-llvm -O2 -c \
+            -emit-llvm -Oz -c \
             -I $$(dirname $(location @sqlite_src//:sqlite3.h)) \
             $(location @sqlite_src//:sqlite3.c) \
             -o $@

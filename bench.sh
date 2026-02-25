@@ -63,7 +63,6 @@ run_benchmark() {
         -load="$PLUGIN" \
         -passes="default<Oz>,func-merging" \
         --func-merging-whole-program \
-        --func-merging-explore 2 \
         --func-merging-f3m)
     local fm_time fm_rc fm_text fm_reduction fm_status
     fm_time=$(echo "$fm_result" | awk '{print $1}')
@@ -89,7 +88,6 @@ run_benchmark() {
         -load-pass-plugin="$PLUGIN" \
         -load="$PLUGIN" \
         -passes="default<Oz>,func-merging" \
-        --func-merging-explore 2 \
         --func-merging-whole-program)
     local fm_time fm_rc fm_text fm_reduction fm_status
     fm_time=$(echo "$fm_result" | awk '{print $1}')
@@ -117,7 +115,6 @@ run_benchmark() {
         -load="$PLUGIN" \
         -passes="default<Oz>,func-merging" \
         --func-merging-whole-program \
-        --func-merging-explore 2 \
         --func-merging-ir2vec \
         --ir2vec-vocab-path "$IR2VEC_VOCAB")
     local ir2vec_time ir2vec_rc ir2vec_text ir2vec_reduction ir2vec_status

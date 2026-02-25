@@ -34,6 +34,12 @@ BITCODE_BIN_ATTRS = {
         cfg = "host",
     ),
     "_bin_ext": attr.string(default = ".bc"),
+    "_llvm_opt": attr.label(
+        default = "@llvm_base_toolchain_llvm//:bin/opt",
+        allow_single_file = True,
+        executable = True,
+        cfg = "host",
+    ),
 }
 
 def _bitcode_library_common(ctx):
@@ -58,7 +64,7 @@ def _bitcode_library_common(ctx):
         defines = ctx.attr.defines,
         local_defines = ctx.attr.local_defines,
         include_prefix = ctx.attr.include_prefix,
-        user_compile_flags = ctx.attr.copts + ["-emit-llvm"],
+        user_compile_flags = ctx.attr.copts + ["-emit-llvm", "-Oz"],
         compilation_contexts = [
             info[BitcodeCcInfo].cc_info.compilation_context
             for info in deps
@@ -97,18 +103,31 @@ def _bitcode_library_common(ctx):
 def _bitcode_binary(ctx):
     bcinfo = _bitcode_library_common(ctx)
     files = bcinfo.bitcode
-
-    output = ctx.actions.declare_file(ctx.label.name + ".bc")
+    
+    # Changed: write llvm-link output to a temp file
+    linked_output = ctx.actions.declare_file(ctx.label.name + "_unopt.bc")
     args = ctx.actions.args()
     args.add_all(files)
     args.add_all(ctx.attr.linkopts)
-    args.add_all(["-o", output])
-
+    args.add_all(["-o", linked_output])
     ctx.actions.run(
         inputs = files,
-        outputs = [output],
+        outputs = [linked_output],
         executable = ctx.executable._llvm_link,
         arguments = [args],
+    )
+
+    # New: run opt -passes=mergereturn on the linked output
+    output = ctx.actions.declare_file(ctx.label.name + ".bc")
+    opt_args = ctx.actions.args()
+    opt_args.add("-passes=mergereturn")
+    opt_args.add(linked_output)
+    opt_args.add_all(["-o", output])
+    ctx.actions.run(
+        inputs = [linked_output],
+        outputs = [output],
+        executable = ctx.executable._llvm_opt,
+        arguments = [opt_args],
     )
 
     return [

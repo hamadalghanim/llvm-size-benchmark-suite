@@ -18,6 +18,8 @@ genrule(
         cmake "$$EXEC_ROOT/external/llvm_src/llvm" \
             -G Ninja \
             -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_CXX_FLAGS_RELEASE="-Os -DNDEBUG" \
+            -DCMAKE_C_FLAGS_RELEASE="-Os -DNDEBUG" \
             -DLLVM_ENABLE_PROJECTS="clang" \
             -DCMAKE_C_COMPILER=wllvm \
             -DCMAKE_CXX_COMPILER=wllvm++ \
