@@ -1,7 +1,0 @@
-benchmark	pass	text_before	text_after	reduction_pct	time_s	status
-build_new_redis	FM	1738359	1729454	1.00	34.043	ok
-build_new_redis	FM-Linear	1738359	1728571	1.00	33.520	ok
-build_new_redis	IR2Vec	1738359	1724331	1.00	98.412	ok
-build_new_sqlite3	FM	734347	753682	-2.00	25.071	ok
-build_new_sqlite3	FM-Linear	734347	745875	-1.00	25.480	ok
-build_new_sqlite3	IR2Vec	734347	748475	-1.00	22.259	ok

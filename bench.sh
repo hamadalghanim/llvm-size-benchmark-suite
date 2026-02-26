@@ -7,133 +7,111 @@ PLUGIN="/workspace/LLVMNextFM.so"
 IR2VEC_VOCAB="/workspace/vocab.json"
 OPT="${OPT:-opt}"
 OUTPUT_DIR="/workspace/results"
-PASSES_LOG="$OUTPUT_DIR/results.tsv"
 
 LLC="${LLC:-llc}"
 LLVM_SIZE="${LLVM_SIZE:-llvm-size}"
 
+SIZE_CSV="$OUTPUT_DIR/size.csv"
+PERF_CSV="$OUTPUT_DIR/perf.csv"
+
 mkdir -p "$OUTPUT_DIR"
 
-# ── Header ────────────────────────────────────────────────────────────────────
-printf "benchmark\tpass\ttext_before\ttext_after\treduction_pct\ttime_s\tstatus\n" | tee "$PASSES_LOG"
+# ── GNU time (Ubuntu: apt install time if missing) ────────────────────────────
+TIME_CMD="/usr/bin/time"
+TIME_FMT="%e %M"   # elapsed wall-clock seconds, peak RSS in KB
 
-# ── Helper: compile .bc -> .o and return text section size via llvm-size ──────
+# ── CSV headers ───────────────────────────────────────────────────────────────
+printf "program_name,pass_name,size\n"              > "$SIZE_CSV"
+printf "program_name,pass_name,time_s,memory_kb\n"  > "$PERF_CSV"
+
+# ── Helper: compile .bc -> .o, return text section size ───────────────────────
 obj_size() {
     local bc="$1"
     local obj="${bc%.bc}.o"
-    "$LLC" -filetype=obj "$bc" -o "$obj" 2>&1 || { echo "0"; return 1; }
-    # llvm-size output: text data bss dec hex filename
+    "$LLC" -filetype=obj "$bc" -o "$obj" 2>/dev/null || { echo "0"; return 1; }
     "$LLVM_SIZE" "$obj" 2>/dev/null | awk 'NR==2 {print $1}'
 }
 
-# ── Helper: run opt with a pass and measure time ──────────────────────────────
+# ── Helper: run opt, return "<elapsed_s> <peak_kb> <exit_code>" ───────────────
 run_pass() {
     local input="$1"
     local output="$2"
     local pass_args=("${@:3}")
 
-    local start end elapsed rc
-    start=$(date +%s%3N)
-    "$OPT" "${pass_args[@]}" "$input" -o "$output"
-    rc=$?
-    end=$(date +%s%3N)
-    elapsed=$(echo "scale=3; ($end - $start) / 1000" | bc)
-    echo "$elapsed $rc"
+    local time_out
+    time_out=$(mktemp)
+
+    "$TIME_CMD" -f "$TIME_FMT" -o "$time_out" \
+        "$OPT" "${pass_args[@]}" "$input" -o "$output" 2>/dev/null
+    local rc=$?
+
+    local elapsed peak_kb
+    elapsed=$(awk '{print $1}' "$time_out")
+    peak_kb=$(awk '{print $2}' "$time_out")
+    rm -f "$time_out"
+
+    echo "$elapsed $peak_kb $rc"
 }
 
-# ── Run one benchmark file through both passes ────────────────────────────────
+# ── Run one benchmark through all passes ──────────────────────────────────────
 run_benchmark() {
     local bc_file="$1"
     local name
     name=$(echo "$bc_file" | sed "s|$BENCHMARK_DIR/||" | sed 's|/|_|g' | sed 's|\.bc$||')
 
-    # Compile baseline (no pass) to get before sizes
-    echo "  [baseline] compiling $name..." >&2
-    local baseline_bc="$OUTPUT_DIR/${name}_baseline.bc"
-    cp "$bc_file" "$baseline_bc"
-    local text_before
-    text_before=$(obj_size "$baseline_bc")
+    # ── Helper: run one pass and append to both CSVs ──────────────────────────
+    emit() {
+        local label="$1" out_bc="$2"; shift 2
+        local pass_args=("$@")
 
-    # ── Pass 1: FM (func-merging + f3m) ──────────────────────────────────────
-    echo "  [FM] running on $name..." >&2
-    local fm_out="$OUTPUT_DIR/${name}_fm.bc"
-    local fm_result
-    fm_result=$(run_pass "$bc_file" "$fm_out" \
+        echo "  [$label] $name" >&2
+        local result elapsed peak_kb rc
+        result=$(run_pass "$bc_file" "$out_bc" "${pass_args[@]}")
+        elapsed=$(echo "$result" | awk '{print $1}')
+        peak_kb=$(echo "$result" | awk '{print $2}')
+        rc=$(echo "$result"      | awk '{print $3}')
+
+        if [[ "$rc" -eq 0 && -f "$out_bc" ]]; then
+            local size
+            size=$(obj_size "$out_bc")
+            printf "%s,%s,%s\n"      "$name" "$label" "$size"               >> "$SIZE_CSV"
+            printf "%s,%s,%s,%s\n"   "$name" "$label" "$elapsed" "$peak_kb" >> "$PERF_CSV"
+        else
+            printf "%s,%s,FAILED\n"        "$name" "$label"                 >> "$SIZE_CSV"
+            printf "%s,%s,FAILED,FAILED\n" "$name" "$label"                 >> "$PERF_CSV"
+        fi
+    }
+
+    # ── Baseline: default<Oz> only, no func-merging ───────────────────────────
+    emit "baseline" "$OUTPUT_DIR/${name}_baseline.bc" \
+        -passes="default<Oz>"
+
+    # ── Pass 1: FM (func-merging + f3m) ───────────────────────────────────────
+    emit "fm-f3m" "$OUTPUT_DIR/${name}_fm.bc" \
         -load-pass-plugin="$PLUGIN" \
         -load="$PLUGIN" \
         -passes="default<Oz>,func-merging" \
         --func-merging-whole-program \
-        --func-merging-f3m)
-    local fm_time fm_rc fm_text fm_reduction fm_status
-    fm_time=$(echo "$fm_result" | awk '{print $1}')
-    fm_rc=$(echo "$fm_result" | awk '{print $2}')
-    if [[ "$fm_rc" -eq 0 && -f "$fm_out" ]]; then
-        fm_text=$(obj_size "$fm_out")
-        fm_reduction=$(echo "scale=2; 100 * (1 - $fm_text / $text_before)" | bc)
-        fm_status="ok"
-    else
-        fm_text="N/A"; fm_reduction="N/A"; fm_status="FAILED"
-    fi
+        --func-merging-f3m
 
-
-    printf "%s\tFM\t%s\t%s\t%s\t%s\t%s\n" \
-        "$name" "$text_before" "$fm_text" "$fm_reduction" "$fm_time" "$fm_status" \
-        | tee -a "$PASSES_LOG"
-
-    # ── Pass 2: FM (func-merging + f3m) ──────────────────────────────────────
-    echo "  [FM-Linear] running on $name..." >&2
-    local fml_out="$OUTPUT_DIR/${name}_fm_linear.bc"
-    local fm_result
-    fm_result=$(run_pass "$bc_file" "$fml_out" \
+    # ── Pass 2: FM-Linear (no f3m) ────────────────────────────────────────────
+    emit "fm" "$OUTPUT_DIR/${name}_fm_linear.bc" \
         -load-pass-plugin="$PLUGIN" \
         -load="$PLUGIN" \
         -passes="default<Oz>,func-merging" \
-        --func-merging-whole-program)
-    local fm_time fm_rc fm_text fm_reduction fm_status
-    fm_time=$(echo "$fm_result" | awk '{print $1}')
-    fm_rc=$(echo "$fm_result" | awk '{print $2}')
-    if [[ "$fm_rc" -eq 0 && -f "$fml_out" ]]; then
-        fm_text=$(obj_size "$fml_out")
-        fm_reduction=$(echo "scale=2; 100 * (1 - $fm_text / $text_before)" | bc)
-        fm_status="ok"
-    else
-        fm_text="N/A"; fm_reduction="N/A"; fm_status="FAILED"
-    fi
-
-
-    printf "%s\tFM-Linear\t%s\t%s\t%s\t%s\t%s\n" \
-        "$name" "$text_before" "$fm_text" "$fm_reduction" "$fm_time" "$fm_status" \
-        | tee -a "$PASSES_LOG"
-
+        --func-merging-whole-program
 
     # ── Pass 3: IR2Vec ────────────────────────────────────────────────────────
-    echo "  [IR2Vec] running on $name..." >&2
-    local ir2vec_out="$OUTPUT_DIR/${name}_ir2vec.bc"
-    local ir2vec_result
-    ir2vec_result=$(run_pass "$bc_file" "$ir2vec_out" \
+    emit "fm-ir2vec" "$OUTPUT_DIR/${name}_ir2vec.bc" \
         -load-pass-plugin="$PLUGIN" \
         -load="$PLUGIN" \
         -passes="default<Oz>,func-merging" \
         --func-merging-whole-program \
         --func-merging-ir2vec \
-        --ir2vec-vocab-path "$IR2VEC_VOCAB")
-    local ir2vec_time ir2vec_rc ir2vec_text ir2vec_reduction ir2vec_status
-    ir2vec_time=$(echo "$ir2vec_result" | awk '{print $1}')
-    ir2vec_rc=$(echo "$ir2vec_result" | awk '{print $2}')
-    if [[ "$ir2vec_rc" -eq 0 && -f "$ir2vec_out" ]]; then
-        ir2vec_text=$(obj_size "$ir2vec_out")
-        ir2vec_reduction=$(echo "scale=2; 100 * (1 - $ir2vec_text / $text_before)" | bc)
-        ir2vec_status="ok"
-    else
-        ir2vec_text="N/A"; ir2vec_reduction="N/A"; ir2vec_status="FAILED"
-    fi
-
-    printf "%s\tIR2Vec\t%s\t%s\t%s\t%s\t%s\n" \
-        "$name" "$text_before" "$ir2vec_text" "$ir2vec_reduction" "$ir2vec_time" "$ir2vec_status" \
-        | tee -a "$PASSES_LOG"
+        --ir2vec-vocab-path "$IR2VEC_VOCAB"
 }
 
-# ── Main: iterate over all .bc files ─────────────────────────────────────────
+# ── Main ──────────────────────────────────────────────────────────────────────
 found=0
 while IFS= read -r -d '' bc_file; do
     echo "── Processing: $bc_file" >&2
@@ -142,4 +120,6 @@ while IFS= read -r -d '' bc_file; do
 done < <(find "$BENCHMARK_DIR" -name "*.bc" -print0 | sort -z)
 
 echo "" >&2
-echo "Done. Processed $found files. Results saved to $PASSES_LOG" >&2
+echo "Done. Processed $found files." >&2
+echo "  Size CSV : $SIZE_CSV" >&2
+echo "  Perf CSV : $PERF_CSV" >&2
