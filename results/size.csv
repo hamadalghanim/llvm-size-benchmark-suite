@@ -47,3 +47,11 @@ build_benchmarks_sqlite_sqlite3,baseline,733240
 build_benchmarks_sqlite_sqlite3,fm-f3m,753682
 build_benchmarks_sqlite_sqlite3,fm,745875
 build_benchmarks_sqlite_sqlite3,fm-ir2vec,748475
+bazel-bin_benchmarks_quake_ioq3ded,baseline,721469
+bazel-bin_benchmarks_quake_ioq3ded,fm-f3m,710644
+bazel-bin_benchmarks_quake_ioq3ded,fm,709360
+bazel-bin_benchmarks_quake_ioq3ded,fm-ir2vec,710578
+bazel-bin_benchmarks_quake_ioquake3,baseline,924471
+bazel-bin_benchmarks_quake_ioquake3,fm-f3m,911742
+bazel-bin_benchmarks_quake_ioquake3,fm,914874
+bazel-bin_benchmarks_quake_ioquake3,fm-ir2vec,912857

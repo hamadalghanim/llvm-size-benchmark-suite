@@ -139,3 +139,15 @@ exports_files(glob(["**"]))
 """,
     url = "https://github.com/rust-lang/rustc-perf/tarball/0fd5c1921c306ccb9df865630145d07c028cb3d5",
 )
+http_archive(
+    name = "ioq3_src",
+    url = "https://github.com/ioquake/ioq3/archive/refs/heads/main.tar.gz",
+    strip_prefix = "ioq3-main",
+    build_file_content = """
+filegroup(
+    name = "all",
+    srcs = glob(["**"], exclude = ["**/*.o", "**/*.a", "**/*.bc"]),
+    visibility = ["//visibility:public"],
+)
+""",
+)
